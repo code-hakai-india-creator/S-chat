@@ -1,0 +1,136 @@
+<!-- Home Page (index.html) --><!DOCTYPE html><html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S-Chat Home</title>
+    <style>
+        body { text-align: center; font-family: Arial, sans-serif; background: #555; color: white; }
+        .container { margin-top: 50px; }
+        input, button { padding: 10px; margin: 5px; border-radius: 50px; border: none; outline: none; }
+        button { background: #dc4d01; color: #fff; }
+  .file-input {
+    display: none;
+}
+
+.file-label {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #dc4d01;
+    color: white;
+    border-radius: 50px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: 0.3s;
+}
+
+.file-label:hover {
+    background-color: #b83b00;
+}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to S-Chat</h1>
+        <p>Create or Join a Chat Group</p>
+        <input type="text" id="group-name" placeholder="Enter Group Name">
+        <input type="password" id="group-password" placeholder="Set Group Password">
+        <input type="file" id="group-photo" accept="image/*" class="file-input">
+<label for="group-photo" class="file-label">Choose Group Photo</label>        <button onclick="joinGroup()">Create / Join</button>
+    </div>
+    <script>
+        function joinGroup() {
+            const groupName = document.getElementById("group-name").value.trim();
+            const groupPassword = document.getElementById("group-password").value.trim();
+            const groupPhoto = document.getElementById("group-photo").files[0];if (groupName && groupPassword) {
+            localStorage.setItem(`password_${groupName}`, groupPassword);
+            if (groupPhoto) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    localStorage.setItem(`photo_${groupName}`, event.target.result);
+                    window.location.href = `chat.html?group=${encodeURIComponent(groupName)}`;
+                };
+                reader.readAsDataURL(groupPhoto);
+            } else {
+                window.location.href = `chat.html?group=${encodeURIComponent(groupName)}`;
+            }
+        } else {
+            alert("Please enter a group name and password.");
+        }
+    }
+</script>
+
+</body>
+</html><!-- Chat Page (chat.html) --><!DOCTYPE html><html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S-Chat</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <style>
+        body { text-align: center; font-family: Arial, sans-serif; background: #121212; color: white; }
+        .navbar { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px; background: #222; }
+        .chat-box { height: 400px; overflow-y: auto; border: 1px solid #333; padding: 10px; }
+        .input-container { display: flex; justify-content: center; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div id="chat-container" style="display: none;">
+        <input type="text" id="user-name" placeholder="Enter Your Name">
+        <div id="chat-box" class="chat-box"></div>
+        <div class="input-container">
+            <input type="text" id="message-input" placeholder="Type a message...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCoIIK96DnxEqChTQzOCJNtpnzKZ9abfYA",
+            authDomain: "chating-450bd.firebaseapp.com",
+            databaseURL: "https://chating-450bd-default-rtdb.firebaseio.com",
+            projectId: "chating-450bd",
+            storageBucket: "chating-450bd.appspot.com",
+            messagingSenderId: "622600114749",
+            appId: "1:622600114749:web:2d878c250d510e97645054",
+            measurementId: "G-J4GM4LTNBC"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();const urlParams = new URLSearchParams(window.location.search);
+    const groupName = urlParams.get("group");
+    document.getElementById("chat-title").textContent = groupName;
+    const storedPhoto = localStorage.getItem(`photo_${groupName}`);
+    if (storedPhoto) document.getElementById("group-photo").src = storedPhoto;
+    
+    function validatePassword() {
+        const enteredPassword = document.getElementById("group-password").value;
+        const storedPassword = localStorage.getItem(`password_${groupName}`);
+        if (enteredPassword === storedPassword) {
+            document.getElementById("password-box").style.display = "none";
+            document.getElementById("chat-container").style.display = "block";
+            loadMessages();
+        } else {
+            alert("Incorrect password!");
+        }
+    }
+    
+    function loadMessages() {
+        database.ref(`chat_groups/${groupName}/messages`).on("child_added", snapshot => {
+            const message = snapshot.val();
+            const messageElement = document.createElement("div");
+            messageElement.textContent = `${message.sender}: ${message.text}`;
+            document.getElementById("chat-box").appendChild(messageElement);
+        });
+    }
+    
+    function sendMessage() {
+        const userName = document.getElementById("user-name").value || "Anonymous";
+        const messageText = document.getElementById("message-input").value;
+        if (messageText) {
+            database.ref(`chat_groups/${groupName}/messages`).push({ text: messageText, sender: userName });
+            document.getElementById("message-input").value = "";
+        }
+    }
+</script>
+
+</body>
+</html>
